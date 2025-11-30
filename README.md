@@ -245,6 +245,6 @@ Project ini dibuat untuk keperluan akademis (UAS Pemrograman Desktop) oleh kelom
 **Menggunakan Python & PyQt6**
 
 *Universitas Trunojoyo Madura*  
-*Semester Ganjil 2024/2025*
+*Semester Ganjil 2025/2026*
 
-*Last updated: 30 November 2024*
+*Last updated: 30 November 2025*
