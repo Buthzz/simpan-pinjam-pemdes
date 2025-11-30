@@ -23,15 +23,6 @@ Project UAS Pemrograman Desktop ini adalah sistem informasi untuk mengelola tran
 - **Topik**: Simpan Pinjam Uang
 - **Semester**: Ganjil 2024/2025
 
-## 🎯 Pembagian Tugas
-
-| Anggota | Tugas | Status |
-|---------|-------|--------|
-| Yohanes Oktanio | Koordinasi project & Database design | ✅ |
-| Muhammad Fajar Nugroho | UI/UX Design & Table View implementation | ✅ |
-| Muhammad Rafi Lazuardi | Record View & CRUD operations | ✅ |
-| Ahmad Ubaydir Rohman | Testing & Documentation | ✅ |
-
 ## 🎯 Fitur Utama
 
 ### 1. Table View (Tab 1)
