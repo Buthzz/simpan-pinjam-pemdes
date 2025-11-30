@@ -21,7 +21,7 @@ Project UAS Pemrograman Desktop ini adalah sistem informasi untuk mengelola tran
 - **Mata Kuliah**: Pemrograman Desktop
 - **Dosen**: Yonathan Ferry Hendrawan, S.T., M.IT.
 - **Topik**: Simpan Pinjam Uang
-- **Semester**: Ganjil 2024/2025
+- **Semester**: 2025/2026 Gasal
 
 ## 🎯 Fitur Utama
 
