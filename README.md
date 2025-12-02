@@ -48,32 +48,7 @@ Project UAS Pemrograman Desktop ini adalah sistem informasi untuk mengelola tran
 
 ### Entity Relationship Diagram (ERD)
 
-```
-┌─────────────────┐         ┌──────────────────┐
-│   PEMINJAM      │         │   PINJAMAN       │
-├─────────────────┤         ├──────────────────┤
-│ id_peminjam(PK) │─────┐   │ id_pinjaman(PK)  │
-│ nama            │     └──<│ id_peminjam(FK)  │
-│ alamat          │         │ jumlah_pinjaman  │
-│ no_telp         │         │ tanggal_pinjam   │
-│ email           │         │ tanggal_selesai  │
-└─────────────────┘         │ status           │
-                            └──────────────────┘
-                                     │
-                                     │ 1
-                                     │
-                                     │ N
-                            ┌──────────────────┐
-                            │   CICILAN        │
-                            ├──────────────────┤
-                            │ id_cicilan(PK)   │
-                            │ id_pinjaman(FK)  │
-                            │ cicilan_ke       │
-                            │ jumlah_cicilan   │
-                            │ tanggal_bayar    │
-                            │ status_bayar     │
-                            └──────────────────┘
-```
+![ERD](ERD.png)
 
 ### Tabel-tabel
 
@@ -126,7 +101,7 @@ simpan_pinjam_uang/
 ## 🚀 Cara Instalasi dan Menjalankan
 
 ### Prerequisites
-- Python 3.8 atau lebih baru
+- Python 3.9 atau lebih baru
 - pip (Python package installer)
 
 ### Langkah Instalasi
@@ -154,15 +129,15 @@ simpan_pinjam_uang/
 
 ## 🎨 Tech Stack
 
-| Teknologi | Versi | Kegunaan |
-|-----------|-------|----------|
-| Python | 3.8+ | Bahasa pemrograman utama |
+| Teknologi | Versi  | Kegunaan |
+|-----------|--------|----------|
+| Python | 3.9+   | Bahasa pemrograman utama |
 | PyQt6 | Latest | GUI Framework |
-| SQLite | 3 | Database engine |
-| QSqlDatabase | - | Database connectivity |
-| QSqlTableModel | - | Model untuk CRUD |
-| QSqlQueryModel | - | Model untuk display |
-| QDataWidgetMapper | - | Mapping data ke widgets |
+| SQLite | 3      | Database engine |
+| QSqlDatabase | -      | Database connectivity |
+| QSqlTableModel | -      | Model untuk CRUD |
+| QSqlQueryModel | -      | Model untuk display |
+| QDataWidgetMapper | -      | Mapping data ke widgets |
 
 ## 📚 Konsep yang Diimplementasikan
 
@@ -198,53 +173,23 @@ simpan_pinjam_uang/
 ## 🖼️ Screenshot
 
 ### Tab 1: Table View
+![img.png](img.png)
 Menampilkan semua transaksi dengan filter real-time.
 
 ### Tab 2: Record View
+![img_1.png](img_1.png)
 Form untuk mengelola data dengan navigasi record.
-
-## 🐛 Known Issues & Limitations
-
-1. **Validasi Input**: Belum ada validasi lengkap untuk input numerik
-2. **Export Data**: Belum ada fitur export ke Excel/PDF
-3. **Backup Database**: Belum ada fitur backup otomatis
-4. **User Authentication**: Belum ada sistem login
-
-## 🔮 Future Improvements
-
-- [ ] Validasi input yang lebih ketat
-- [ ] Export data ke Excel/PDF
-- [ ] Laporan keuangan (summary, charts)
-- [ ] Reminder untuk cicilan jatuh tempo
-- [ ] Multi-user dengan authentication
-- [ ] Dark mode theme
-- [ ] Search history
-- [ ] Backup & restore database
-
-## 📞 Kontak Kelompok
-
-Jika ada pertanyaan atau masalah, silakan hubungi:
-
-**Ketua Kelompok:**
-- Nama: Yohanes Oktanio
-- NRP: 240411100095
-- Email: yohanes.oktanio@example.com
-
-**Anggota:**
-- Muhammad Fajar Nugroho (240411100103)
-- Muhammad Rafi Lazuardi (230411100060)
-- Ahmad Ubaydir Rohman (230411100116)
 
 ## 📄 Lisensi
 
-Project ini dibuat untuk keperluan akademis (UAS Pemrograman Desktop) oleh kelompok IF 7D.
+Project ini dibuat untuk keperluan akademis (UAS Pemrograman Desktop) oleh kelompok 5.
 
 ---
 
-**Dibuat dengan ❤️ oleh Kelompok IF 7D**  
+**Dibuat dengan ❤️ oleh Kelompok 5**  
 **Menggunakan Python & PyQt6**
 
 *Universitas Trunojoyo Madura*  
 *Semester Ganjil 2025/2026*
 
-*Last updated: 30 November 2025*
+*Last updated: 2 Desember 2025*
