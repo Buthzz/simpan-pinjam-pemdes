@@ -173,11 +173,11 @@ simpan_pinjam_uang/
 ## 🖼️ Screenshot
 
 ### Tab 1: Table View
-![img.png](img.png)
+![img.png](table_view.png)
 Menampilkan semua transaksi dengan filter real-time.
 
 ### Tab 2: Record View
-![img_1.png](img_1.png)
+![img_1.png](record_view.png)
 Form untuk mengelola data dengan navigasi record.
 
 ## 📄 Lisensi
