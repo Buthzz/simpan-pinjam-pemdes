@@ -1,9 +1,30 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLabel, QLineEdit, QComboBox,
-                             QDateEdit, QDataWidgetMapper, QMessageBox, QDialog) # Added QDialog
-from PyQt6.QtCore import Qt
-from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation
-from add_data_dialog import AddDataDialog # Import the new dialog
+                             QDateEdit, QDataWidgetMapper, QMessageBox, QDialog)
+from PyQt6.QtCore import Qt, pyqtProperty
+from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation, QSqlDatabase
+
+
+# Custom ComboBox for QDataWidgetMapper to handle currentData property
+class MappingComboBox(QComboBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+    def _get_current_data_property(self):
+        return self.currentData()
+
+    def _set_current_data_property(self, value):
+        # Find the index of the item that has 'value' as its userData
+        index = self.findData(value)
+        if index >= 0:
+            self.setCurrentIndex(index)
+        # If value is None and combo has placeholder, set to placeholder
+        elif value is None and self.count() > 0 and self.itemData(0) is None:
+            self.setCurrentIndex(0)
+
+    # Expose currentData as a read/write PyQt property
+    # Changed 'object' to 'int' to resolve TypeError
+    currentData_property = pyqtProperty(int, _get_current_data_property, _set_current_data_property, user=True)
 
 
 class RecordViewWidget(QWidget):
@@ -57,18 +78,18 @@ class RecordViewWidget(QWidget):
 
         self.btn_add = QPushButton("Tambah")
         self.btn_delete = QPushButton("Hapus")
-        self.btn_save = QPushButton("Simpan") # Restored
-        self.btn_cancel = QPushButton("Batal") # Restored
+        self.btn_save = QPushButton("Simpan")
+        self.btn_cancel = QPushButton("Batal")
 
         self.btn_add.clicked.connect(self.add_record)
         self.btn_delete.clicked.connect(self.delete_record)
-        self.btn_save.clicked.connect(self.save_record) # Restored
-        self.btn_cancel.clicked.connect(self.cancel_edit) # Restored
+        self.btn_save.clicked.connect(self.save_record)
+        self.btn_cancel.clicked.connect(self.cancel_edit)
 
         action_layout.addWidget(self.btn_add)
         action_layout.addWidget(self.btn_delete)
-        action_layout.addWidget(self.btn_save) # Restored
-        action_layout.addWidget(self.btn_cancel) # Restored
+        action_layout.addWidget(self.btn_save)
+        action_layout.addWidget(self.btn_cancel)
         layout.addLayout(action_layout)
 
         self.setLayout(layout)
@@ -96,10 +117,12 @@ class RecordViewWidget(QWidget):
             self.model.setRelation(1, QSqlRelation("peminjam", "id_peminjam", "nama"))
             self.model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnManualSubmit)
         elif table_name == "cicilan":
-            # Gunakan QSqlRelationalTableModel untuk menampilkan ID Pinjaman
+            # Revert to QSqlRelationalTableModel as it provides proper data for id_pinjaman
             self.model = QSqlRelationalTableModel()
             self.model.setTable(table_name)
-            # Untuk cicilan, tetap tampilkan id_pinjaman (tidak ada nama yang cocok)
+            # Define relation for id_pinjaman to pinjaman to allow QDataWidgetMapper to get the ID
+            # Although we'll use MappingComboBox for display, this ensures the model is correct
+            self.model.setRelation(1, QSqlRelation("pinjaman", "id_pinjaman", "id_pinjaman"))
             self.model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnManualSubmit)
         else:
             # Tabel peminjam tidak perlu relasi
@@ -121,6 +144,20 @@ class RecordViewWidget(QWidget):
             self.mapper.toFirst()
         self.update_position()
 
+    def _load_pinjaman_with_peminjam_names_to_combo(self, combo_box):
+        """Helper to load pinjaman IDs with peminjam names into a QComboBox."""
+        combo_box.clear()
+        combo_box.addItem("Pilih Pinjaman", None) # Add a placeholder
+        query = QSqlQuery(QSqlDatabase.database())
+        query.exec("SELECT p.id_pinjaman, p.jumlah_pinjaman, pm.nama FROM pinjaman p JOIN peminjam pm ON p.id_peminjam = pm.id_peminjam ORDER BY p.id_pinjaman")
+        
+        while query.next():
+            loan_id = query.value(0)
+            amount = query.value(1)
+            peminjam_name = query.value(2)
+            display_text = f"ID: {loan_id} - {peminjam_name} (Rp {amount:,.0f})"
+            combo_box.addItem(display_text, loan_id) # text=descriptive string, data=id_pinjaman
+
     def create_form_fields(self):
         """Buat form fields berdasarkan kolom tabel"""
         self.fields = {}
@@ -135,12 +172,20 @@ class RecordViewWidget(QWidget):
                 self.fields[col_name] = field
                 self.form_layout.addRow(col_name + ":", field)
                 self.mapper.addMapping(field, i)
-
+            
+            # Special handling for id_pinjaman in cicilan table
+            elif self.current_table == "cicilan" and col_name and col_name.lower() == 'id_pinjaman':
+                field = MappingComboBox() # Use custom MappingComboBox
+                self._load_pinjaman_with_peminjam_names_to_combo(field)
+                self.fields[col_name] = field
+                self.form_layout.addRow("ID Pinjaman (Peminjam):", field)
+                self.mapper.addMapping(field, i, b"currentData_property") # Map to custom property
+            
             # Foreign key id_peminjam - tampilkan sebagai ComboBox dengan nama
             elif col_name and col_name.lower() == 'id_peminjam':
                 field = QComboBox()
                 # Load data peminjam
-                query = QSqlQuery()
+                query = QSqlQuery(QSqlDatabase.database())
                 query.exec("SELECT id_peminjam, nama FROM peminjam ORDER BY nama")
                 while query.next():
                     field.addItem(query.value(1), query.value(0))  # text=nama, data=id
@@ -266,7 +311,16 @@ class RecordViewWidget(QWidget):
             id_peminjam = combo.currentData()
             # Set nilai id_peminjam ke model
             current_row = self.mapper.currentIndex()
-            self.model.setData(self.model.index(current_row, 1), id_peminjam)
+            self.model.setData(self.model.index(current_row, 1), id_peminjam) # Column 1 is id_peminjam
+
+        # Handle save for id_pinjaman in cicilan table
+        elif self.current_table == "cicilan" and 'id_pinjaman' in self.fields:
+            combo = self.fields['id_pinjaman']
+            id_pinjaman = combo.currentData()
+            current_row = self.mapper.currentIndex()
+            # Assuming id_pinjaman is column 1 in the cicilan table for data mapping
+            self.model.setData(self.model.index(current_row, 1), id_pinjaman)
+
 
         self.mapper.submit()
 
