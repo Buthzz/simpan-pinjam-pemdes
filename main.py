@@ -8,12 +8,10 @@ import create_database
 
 
 class MainWindow(QMainWindow):
-    """Main Window Aplikasi Simpan Pinjam Uang"""
-
     def __init__(self):
         super().__init__()
 
-        # Koneksi ke database
+        
         self.db_manager = DatabaseManager("database.db")
         if not self.db_manager.connect():
             sys.exit(1)
@@ -24,14 +22,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Aplikasi Simpan Pinjam Uang - UAS Pemrograman Desktop")
         self.setGeometry(100, 100, 1200, 700)
 
-        # Tab Widget
+        
         tabs = QTabWidget()
 
-        # Tab 1: Table View dengan 2 filter
+        
         self.table_view = TableViewWidget()
         tabs.addTab(self.table_view, "Table View (Filter)")
 
-        # Tab 2: Record View dengan CRUD + Navigasi
+        
         self.record_view = RecordViewWidget()
         tabs.addTab(self.record_view, "Record View (CRUD)")
 
@@ -39,11 +37,10 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    # Cek dan buat database jika belum ada
+    
     if not os.path.exists('database.db'):
         print("Database 'database.db' tidak ditemukan. Membuat database baru...")
         create_database.create_database()
-        print("Database berhasil dibuat.")
 
     app = QApplication(sys.argv)
     window = MainWindow()

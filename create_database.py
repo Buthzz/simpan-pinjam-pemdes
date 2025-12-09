@@ -5,7 +5,7 @@ def create_database():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    # Tabel Peminjam
+    
     cursor.execute('''
                    CREATE TABLE IF NOT EXISTS peminjam
                    (
@@ -33,7 +33,7 @@ def create_database():
                    )
                    ''')
 
-    # Tabel Pinjaman
+    
     cursor.execute('''
                    CREATE TABLE IF NOT EXISTS pinjaman
                    (
@@ -73,7 +73,7 @@ def create_database():
                        )
                    ''')
 
-    # Tabel Cicilan
+    
     cursor.execute('''
                    CREATE TABLE IF NOT EXISTS cicilan
                    (
@@ -111,7 +111,7 @@ def create_database():
                        )
                    ''')
 
-    # Insert Data Peminjam (5 records)
+    
     peminjam_data = [
         ('Budi Santoso', 'Jl. Merdeka No. 10, Surabaya', '081234567890', 'budi@email.com'),
         ('Siti Nurhaliza', 'Jl. Pahlawan No. 25, Surabaya', '081234567891', 'siti@email.com'),
@@ -121,7 +121,7 @@ def create_database():
     ]
     cursor.executemany('INSERT INTO peminjam (nama, alamat, no_telp, email) VALUES (?, ?, ?, ?)', peminjam_data)
 
-    # Insert Data Pinjaman (6 records)
+    
     pinjaman_data = [
         (1, 5000000, '2024-01-15', '2024-07-15', 'Aktif'),
         (1, 3000000, '2024-03-01', '2024-09-01', 'Lunas'),
@@ -134,30 +134,30 @@ def create_database():
         'INSERT INTO pinjaman (id_peminjam, jumlah_pinjaman, tanggal_pinjam, tanggal_selesai, status) VALUES (?, ?, ?, ?, ?)',
         pinjaman_data)
 
-    # Insert Data Cicilan (24 records)
+    
     cicilan_data = [
-        # Pinjaman 1 (Budi - 5jt)
+        
         (1, 1, 833333, '2024-02-15', 'Lunas'),
         (1, 2, 833333, '2024-03-15', 'Lunas'),
         (1, 3, 833333, '2024-04-15', 'Lunas'),
         (1, 4, 833333, None, 'Belum Bayar'),
         (1, 5, 833333, None, 'Belum Bayar'),
         (1, 6, 833335, None, 'Belum Bayar'),
-        # Pinjaman 2 (Budi - 3jt)
+        
         (2, 1, 500000, '2024-04-01', 'Lunas'),
         (2, 2, 500000, '2024-05-01', 'Lunas'),
         (2, 3, 500000, '2024-06-01', 'Lunas'),
         (2, 4, 500000, '2024-07-01', 'Lunas'),
         (2, 5, 500000, '2024-08-01', 'Lunas'),
         (2, 6, 500000, '2024-09-01', 'Lunas'),
-        # Pinjaman 3 (Siti - 10jt)
+        
         (3, 1, 1666667, '2024-03-10', 'Lunas'),
         (3, 2, 1666667, '2024-04-10', 'Lunas'),
         (3, 3, 1666667, None, 'Belum Bayar'),
         (3, 4, 1666667, None, 'Belum Bayar'),
         (3, 5, 1666667, None, 'Belum Bayar'),
         (3, 6, 1666665, None, 'Belum Bayar'),
-        # Pinjaman 4 (Ahmad - 7.5jt)
+        
         (4, 1, 1250000, '2024-02-20', 'Lunas'),
         (4, 2, 1250000, '2024-03-20', 'Lunas'),
         (4, 3, 1250000, '2024-04-20', 'Lunas'),

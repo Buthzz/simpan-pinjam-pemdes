@@ -9,7 +9,7 @@ from PyQt6.QtGui import QDoubleValidator
 class CurrencyLineEdit(QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # Allow numbers and one decimal point. Max 15 digits before decimal, 2 after.
+        
         validator = QDoubleValidator(0.0, 1000000000000000.0, 2, self)
         validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.setValidator(validator)
@@ -22,17 +22,17 @@ class CurrencyLineEdit(QLineEdit):
     def _format_value_for_display(self, value):
         try:
             num = float(value)
-            # Format using QLocale, with 'f' format (fixed point) and 0 decimal places.
-            # Add "Rp " prefix.
+            
+            
             return f"Rp {self.indonesian_locale.toString(num, 'f', 0)}"
         except (ValueError, TypeError):
             return ""
 
     def _get_numeric_from_display_text(self, text):
-        # Remove "Rp " prefix, then use QLocale to parse the number
+        
         cleaned_text = text.replace("Rp ", "").strip()
         try:
-            # QLocale's toDouble handles thousands/decimal separators based on locale
+            
             num, ok = self.indonesian_locale.toDouble(cleaned_text)
             if ok:
                 return num
@@ -42,7 +42,7 @@ class CurrencyLineEdit(QLineEdit):
             return 0.0
 
     def get_numeric_value(self):
-        # Return the internally stored numeric value
+        
         return self._numeric_value
 
     def set_numeric_value(self, value):
@@ -51,50 +51,50 @@ class CurrencyLineEdit(QLineEdit):
         new_numeric_value = float(value)
         if self._numeric_value != new_numeric_value:
             self._numeric_value = new_numeric_value
-            # Update the displayed text with the formatted numeric value
+            
             super().setText(self._format_value_for_display(self._numeric_value))
 
-    # This is the property QDataWidgetMapper will use to get/set the numeric value
-    # However, QDataWidgetMapper is not used in AddDataDialog, so this is mostly for consistency
-    # and if this widget were to be used elsewhere with a mapper.
+    
+    
+    
     numeric_value = pyqtProperty(float, get_numeric_value, set_numeric_value, user=True)
 
     def _on_editing_finished(self):
-        # When editing finishes, parse the current display text, update internal numeric value,
-        # then reformat the display text to ensure consistency (e.g., if user types 1000 without separators)
+        
+        
         current_display_text = self.text()
         parsed_value = self._get_numeric_from_display_text(current_display_text)
-        self.set_numeric_value(parsed_value) # This will re-trigger setText via the property setter
+        self.set_numeric_value(parsed_value) 
 
-    # Override setText to handle initial setting from code
+    
     def setText(self, text):
         if isinstance(text, (int, float)):
             self.set_numeric_value(text)
         else:
-            # Try to parse it as numeric, then format
+            
             num = self._get_numeric_from_display_text(text)
             self.set_numeric_value(num)
 
     def text(self):
-        # When text() is called, we return the formatted text
+        
         return super().text()
 
 
 class AddDataDialog(QDialog):
-    def __init__(self, parent=None, table_type=None): # Added table_type parameter
+    def __init__(self, parent=None, table_type=None): 
         super().__init__(parent)
         self.setWindowTitle("Tambah Data Baru")
         self.setGeometry(200, 200, 600, 400)
-        self.db = QSqlDatabase.database() # Get the current QSqlDatabase instance
-        self.table_type = table_type # Store table_type
+        self.db = QSqlDatabase.database() 
+        self.table_type = table_type 
 
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
 
-        # Mapping table names to stacked widget indices
+        
         self.table_to_index = {"peminjam": 0, "pinjaman": 1, "cicilan": 2}
 
-        self.type_selector_widget = QWidget() # Group the selector for easy hiding
+        self.type_selector_widget = QWidget() 
         self.init_type_selector()
         self.main_layout.addWidget(self.type_selector_widget)
 
@@ -102,26 +102,26 @@ class AddDataDialog(QDialog):
         self.init_buttons()
 
         if self.table_type:
-            # If table_type is provided, directly show the correct form
-            # and hide the type selector
+            
+            
             self.type_selector_widget.hide()
             if self.table_type in self.table_to_index:
                 self.change_form(self.table_to_index[self.table_type])
             else:
                 QMessageBox.critical(self, "Error", f"Invalid table type: {self.table_type}")
-                self.reject() # Close dialog if invalid type
+                self.reject() 
         else:
-            # Default to Peminjam form if no type is given
-            self.change_form(0) # Default to Peminjam form if no type is given
+            
+            self.change_form(0) 
 
 
     def init_type_selector(self):
-        # Widget untuk memilih tipe data (Peminjam, Pinjaman, Cicilan)
+        
         type_selector_layout = QHBoxLayout(self.type_selector_widget)
         type_selector_layout.addWidget(QLabel("Pilih Tipe Data:"))
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Peminjam", "Pinjaman", "Cicilan"])
-        self.type_combo.currentTextChanged.connect(self.change_form_by_name) # Connect to new method
+        self.type_combo.currentTextChanged.connect(self.change_form_by_name) 
         type_selector_layout.addWidget(self.type_combo)
 
 
@@ -133,9 +133,9 @@ class AddDataDialog(QDialog):
         self.form_pinjaman = self._create_pinjaman_form()
         self.form_cicilan = self._create_cicilan_form()
 
-        self.stacked_widget.addWidget(self.form_peminjam) # Index 0
-        self.stacked_widget.addWidget(self.form_pinjaman) # Index 1
-        self.stacked_widget.addWidget(self.form_cicilan)  # Index 2
+        self.stacked_widget.addWidget(self.form_peminjam) 
+        self.stacked_widget.addWidget(self.form_pinjaman) 
+        self.stacked_widget.addWidget(self.form_cicilan)  
 
 
     def _create_peminjam_form(self):
@@ -166,7 +166,7 @@ class AddDataDialog(QDialog):
         self.pinjaman_fields['tanggal_pinjam'].setDate(QDate.currentDate())
         self.pinjaman_fields['tanggal_selesai'] = QDateEdit(calendarPopup=True)
         self.pinjaman_fields['tanggal_selesai'].setDisplayFormat("yyyy-MM-dd")
-        self.pinjaman_fields['tanggal_selesai'].setDate(QDate.currentDate().addMonths(6)) # Default 6 months
+        self.pinjaman_fields['tanggal_selesai'].setDate(QDate.currentDate().addMonths(6)) 
         self.pinjaman_fields['status'] = QComboBox()
         self.pinjaman_fields['status'].addItems(["Aktif", "Lunas"])
 
@@ -184,8 +184,8 @@ class AddDataDialog(QDialog):
         layout = QFormLayout(widget)
 
         self.cicilan_fields = {}
-        self.cicilan_fields['nama_peminjam'] = QComboBox() # User selects borrower name
-        self.cicilan_fields['id_pinjaman'] = QComboBox() # Populated based on selected borrower
+        self.cicilan_fields['nama_peminjam'] = QComboBox() 
+        self.cicilan_fields['id_pinjaman'] = QComboBox() 
         self.cicilan_fields['cicilan_ke'] = QLineEdit()
         self.cicilan_fields['jumlah_cicilan'] = CurrencyLineEdit()
         self.cicilan_fields['tanggal_bayar'] = QDateEdit(calendarPopup=True)
@@ -203,7 +203,7 @@ class AddDataDialog(QDialog):
 
         self._load_peminjam_to_combo(self.cicilan_fields['nama_peminjam'])
         self.cicilan_fields['nama_peminjam'].currentIndexChanged.connect(self._load_pinjaman_to_combo)
-        # Initial load for pinjaman if a peminjam is pre-selected
+        
         if self.cicilan_fields['nama_peminjam'].currentData() is not None:
              self._load_pinjaman_to_combo(self.cicilan_fields['nama_peminjam'].currentIndex())
 
@@ -213,9 +213,9 @@ class AddDataDialog(QDialog):
         combo_box.clear()
         query = QSqlQuery(self.db)
         query.exec("SELECT id_peminjam, nama FROM peminjam ORDER BY nama")
-        combo_box.addItem("Pilih Peminjam", None) # Add a placeholder
+        combo_box.addItem("Pilih Peminjam", None) 
         while query.next():
-            combo_box.addItem(query.value(1), query.value(0)) # text=nama, data=id
+            combo_box.addItem(query.value(1), query.value(0)) 
 
     def _load_pinjaman_to_combo(self, index):
         peminjam_id = self.cicilan_fields['nama_peminjam'].currentData()
@@ -229,7 +229,7 @@ class AddDataDialog(QDialog):
         query.addBindValue(peminjam_id)
         query.exec()
 
-        self.cicilan_fields['id_pinjaman'].addItem("Pilih Pinjaman", None) # Placeholder
+        self.cicilan_fields['id_pinjaman'].addItem("Pilih Pinjaman", None) 
         while query.next():
             loan_id = query.value(0)
             amount = query.value(1)
@@ -243,14 +243,14 @@ class AddDataDialog(QDialog):
         self.cancel_button = QPushButton("Batal")
 
         self.save_button.clicked.connect(self.save_data)
-        self.cancel_button.clicked.connect(self.reject) # Reject closes the dialog
+        self.cancel_button.clicked.connect(self.reject) 
 
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.cancel_button)
         self.main_layout.addLayout(button_layout)
 
     def change_form_by_name(self, table_name_str):
-        # Map string name to index
+        
         if table_name_str in self.table_to_index:
             index = self.table_to_index[table_name_str]
             self.change_form(index)
@@ -259,23 +259,23 @@ class AddDataDialog(QDialog):
 
     def change_form(self, index):
         self.stacked_widget.setCurrentIndex(index)
-        # Optionally update dialog size based on form
-        if index == 0: # Peminjam
+        
+        if index == 0: 
             self.setFixedSize(400, 300)
-        elif index == 1: # Pinjaman
+        elif index == 1: 
             self.setFixedSize(500, 350)
-        elif index == 2: # Cicilan
+        elif index == 2: 
             self.setFixedSize(500, 400)
 
 
     def save_data(self):
         current_form_index = self.stacked_widget.currentIndex()
 
-        if current_form_index == 0: # Peminjam
+        if current_form_index == 0: 
             self._save_peminjam()
-        elif current_form_index == 1: # Pinjaman
+        elif current_form_index == 1: 
             self._save_pinjaman()
-        elif current_form_index == 2: # Cicilan
+        elif current_form_index == 2: 
             self._save_cicilan()
 
     def _save_peminjam(self):
@@ -297,7 +297,7 @@ class AddDataDialog(QDialog):
 
         if query.exec():
             QMessageBox.information(self, "Sukses", "Data Peminjam berhasil ditambahkan.")
-            self.accept() # Close dialog
+            self.accept() 
         else:
             QMessageBox.critical(self, "Error", f"Gagal menambahkan Peminjam: {query.lastError().text()}")
 
@@ -308,7 +308,7 @@ class AddDataDialog(QDialog):
         if id_peminjam is None:
             QMessageBox.warning(self, "Input Error", "Peminjam harus dipilih.")
             return
-        if jumlah_pinjaman <= 0: # Check if the numeric value is valid
+        if jumlah_pinjaman <= 0: 
             QMessageBox.warning(self, "Input Error", "Jumlah Pinjaman harus berupa angka positif.")
             return
 
@@ -346,7 +346,7 @@ class AddDataDialog(QDialog):
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Cicilan Ke- harus berupa angka bulat.")
             return
-        if jumlah_cicilan <= 0: # Check if the numeric value is valid
+        if jumlah_cicilan <= 0: 
             QMessageBox.warning(self, "Input Error", "Jumlah Cicilan harus berupa angka positif.")
             return
 
