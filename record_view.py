@@ -1,8 +1,9 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLabel, QLineEdit, QComboBox,
                              QDateEdit, QDataWidgetMapper, QMessageBox, QDialog)
-from PyQt6.QtCore import Qt, pyqtProperty
+from PyQt6.QtCore import Qt, pyqtProperty, QLocale
 from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation, QSqlDatabase
+from PyQt6.QtGui import QDoubleValidator # Add this import
 
 
 # Custom ComboBox for QDataWidgetMapper to handle currentData property
@@ -25,6 +26,65 @@ class MappingComboBox(QComboBox):
     # Expose currentData as a read/write PyQt property
     # Changed 'object' to 'int' to resolve TypeError
     currentData_property = pyqtProperty(int, _get_current_data_property, _set_current_data_property, user=True)
+
+
+class CurrencyLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Allow numbers and one decimal point. Max 15 digits before decimal, 2 after.
+        validator = QDoubleValidator(0.0, 1000000000000000.0, 2, self)
+        validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.setValidator(validator)
+
+        self._numeric_value = 0.0
+        self.indonesian_locale = QLocale(QLocale.Language.Indonesian, QLocale.Country.Indonesia)
+        self.editingFinished.connect(self._on_editing_finished)
+        self.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+    def _format_value_for_display(self, value):
+        try:
+            num = float(value)
+            # Format using QLocale, with 'f' format (fixed point) and 0 decimal places.
+            # Add "Rp " prefix.
+            return f"Rp {self.indonesian_locale.toString(num, 'f', 0)}"
+        except (ValueError, TypeError):
+            return ""
+
+    def _get_numeric_from_display_text(self, text):
+        # Remove "Rp " prefix, then use QLocale to parse the number
+        cleaned_text = text.replace("Rp ", "").strip()
+        try:
+            # QLocale's toDouble handles thousands/decimal separators based on locale
+            num, ok = self.indonesian_locale.toDouble(cleaned_text)
+            if ok:
+                return num
+            else:
+                return 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    def get_numeric_value(self):
+        # Return the internally stored numeric value
+        return self._numeric_value
+
+    def set_numeric_value(self, value):
+        if value is None:
+            value = 0.0
+        new_numeric_value = float(value)
+        if self._numeric_value != new_numeric_value:
+            self._numeric_value = new_numeric_value
+            # Update the displayed text with the formatted numeric value
+            super().setText(self._format_value_for_display(self._numeric_value))
+
+    # This is the property QDataWidgetMapper will use to get/set the numeric value
+    numeric_value = pyqtProperty(float, get_numeric_value, set_numeric_value, user=True)
+
+    def _on_editing_finished(self):
+        # When editing finishes, parse the current display text, update internal numeric value,
+        # then reformat the display text to ensure consistency (e.g., if user types 1000 without separators)
+        current_display_text = self.text()
+        parsed_value = self._get_numeric_from_display_text(current_display_text)
+        self.set_numeric_value(parsed_value) # This will re-trigger setText via the property setter
 
 
 class RecordViewWidget(QWidget):
@@ -215,11 +275,10 @@ class RecordViewWidget(QWidget):
 
             # Jumlah/nominal fields - format dengan pemisah ribuan
             elif col_name and ('jumlah' in col_name.lower() or 'nominal' in col_name.lower()):
-                field = QLineEdit()
-                # Validator untuk angka saja
+                field = CurrencyLineEdit()
                 self.fields[col_name] = field
                 self.form_layout.addRow(col_name + ":", field)
-                self.mapper.addMapping(field, i)
+                self.mapper.addMapping(field, i, b"numeric_value")
 
             # Regular text fields
             else:

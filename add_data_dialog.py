@@ -2,7 +2,84 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLineEdit, QLabel, QComboBox,
                              QMessageBox, QDateEdit, QStackedWidget, QWidget)
 from PyQt6.QtSql import QSqlQuery, QSqlDatabase
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt, QDate, QLocale
+from PyQt6.QtGui import QDoubleValidator # Add this import
+
+
+class CurrencyLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Allow numbers and one decimal point. Max 15 digits before decimal, 2 after.
+        validator = QDoubleValidator(0.0, 1000000000000000.0, 2, self)
+        validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.setValidator(validator)
+
+        self._numeric_value = 0.0
+        self.indonesian_locale = QLocale(QLocale.Language.Indonesian, QLocale.Country.Indonesia)
+        self.editingFinished.connect(self._on_editing_finished)
+        self.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+    def _format_value_for_display(self, value):
+        try:
+            num = float(value)
+            # Format using QLocale, with 'f' format (fixed point) and 0 decimal places.
+            # Add "Rp " prefix.
+            return f"Rp {self.indonesian_locale.toString(num, 'f', 0)}"
+        except (ValueError, TypeError):
+            return ""
+
+    def _get_numeric_from_display_text(self, text):
+        # Remove "Rp " prefix, then use QLocale to parse the number
+        cleaned_text = text.replace("Rp ", "").strip()
+        try:
+            # QLocale's toDouble handles thousands/decimal separators based on locale
+            num, ok = self.indonesian_locale.toDouble(cleaned_text)
+            if ok:
+                return num
+            else:
+                return 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    def get_numeric_value(self):
+        # Return the internally stored numeric value
+        return self._numeric_value
+
+    def set_numeric_value(self, value):
+        if value is None:
+            value = 0.0
+        new_numeric_value = float(value)
+        if self._numeric_value != new_numeric_value:
+            self._numeric_value = new_numeric_value
+            # Update the displayed text with the formatted numeric value
+            super().setText(self._format_value_for_display(self._numeric_value))
+
+    # This is the property QDataWidgetMapper will use to get/set the numeric value
+    # However, QDataWidgetMapper is not used in AddDataDialog, so this is mostly for consistency
+    # and if this widget were to be used elsewhere with a mapper.
+    numeric_value = pyqtProperty(float, get_numeric_value, set_numeric_value, user=True)
+
+    def _on_editing_finished(self):
+        # When editing finishes, parse the current display text, update internal numeric value,
+        # then reformat the display text to ensure consistency (e.g., if user types 1000 without separators)
+        current_display_text = self.text()
+        parsed_value = self._get_numeric_from_display_text(current_display_text)
+        self.set_numeric_value(parsed_value) # This will re-trigger setText via the property setter
+
+    # Override setText to handle initial setting from code
+    def setText(self, text):
+        if isinstance(text, (int, float)):
+            self.set_numeric_value(text)
+        else:
+            # Try to parse it as numeric, then format
+            num = self._get_numeric_from_display_text(text)
+            self.set_numeric_value(num)
+
+    def text(self):
+        # When text() is called, we return the formatted text
+        return super().text()
+, QLocale
+from PyQt6.QtGui import QDoubleValidator # Add this import
 
 
 class AddDataDialog(QDialog):
@@ -85,7 +162,7 @@ class AddDataDialog(QDialog):
 
         self.pinjaman_fields = {}
         self.pinjaman_fields['id_peminjam'] = QComboBox()
-        self.pinjaman_fields['jumlah_pinjaman'] = QLineEdit()
+        self.pinjaman_fields['jumlah_pinjaman'] = CurrencyLineEdit()
         self.pinjaman_fields['tanggal_pinjam'] = QDateEdit(calendarPopup=True)
         self.pinjaman_fields['tanggal_pinjam'].setDisplayFormat("yyyy-MM-dd")
         self.pinjaman_fields['tanggal_pinjam'].setDate(QDate.currentDate())
@@ -112,7 +189,7 @@ class AddDataDialog(QDialog):
         self.cicilan_fields['nama_peminjam'] = QComboBox() # User selects borrower name
         self.cicilan_fields['id_pinjaman'] = QComboBox() # Populated based on selected borrower
         self.cicilan_fields['cicilan_ke'] = QLineEdit()
-        self.cicilan_fields['jumlah_cicilan'] = QLineEdit()
+        self.cicilan_fields['jumlah_cicilan'] = CurrencyLineEdit()
         self.cicilan_fields['tanggal_bayar'] = QDateEdit(calendarPopup=True)
         self.cicilan_fields['tanggal_bayar'].setDisplayFormat("yyyy-MM-dd")
         self.cicilan_fields['tanggal_bayar'].setDate(QDate.currentDate())
@@ -228,21 +305,13 @@ class AddDataDialog(QDialog):
 
     def _save_pinjaman(self):
         id_peminjam = self.pinjaman_fields['id_peminjam'].currentData()
-        jumlah_pinjaman_str = self.pinjaman_fields['jumlah_pinjaman'].text().strip()
-        tanggal_pinjam = self.pinjaman_fields['tanggal_pinjam'].date().toString("yyyy-MM-dd")
-        tanggal_selesai = self.pinjaman_fields['tanggal_selesai'].date().toString("yyyy-MM-dd")
-        status = self.pinjaman_fields['status'].currentText()
+        jumlah_pinjaman = self.pinjaman_fields['jumlah_pinjaman'].get_numeric_value()
 
         if id_peminjam is None:
             QMessageBox.warning(self, "Input Error", "Peminjam harus dipilih.")
             return
-        if not jumlah_pinjaman_str:
-            QMessageBox.warning(self, "Input Error", "Jumlah Pinjaman harus diisi.")
-            return
-        try:
-            jumlah_pinjaman = float(jumlah_pinjaman_str)
-        except ValueError:
-            QMessageBox.warning(self, "Input Error", "Jumlah Pinjaman harus berupa angka.")
+        if jumlah_pinjaman <= 0: # Check if the numeric value is valid
+            QMessageBox.warning(self, "Input Error", "Jumlah Pinjaman harus berupa angka positif.")
             return
 
         query = QSqlQuery(self.db)
@@ -262,9 +331,7 @@ class AddDataDialog(QDialog):
     def _save_cicilan(self):
         id_pinjaman = self.cicilan_fields['id_pinjaman'].currentData()
         cicilan_ke_str = self.cicilan_fields['cicilan_ke'].text().strip()
-        jumlah_cicilan_str = self.cicilan_fields['jumlah_cicilan'].text().strip()
-        tanggal_bayar = self.cicilan_fields['tanggal_bayar'].date().toString("yyyy-MM-dd")
-        status_bayar = self.cicilan_fields['status_bayar'].currentText()
+        jumlah_cicilan = self.cicilan_fields['jumlah_cicilan'].get_numeric_value()
 
         if id_pinjaman is None:
             QMessageBox.warning(self, "Input Error", "Pinjaman harus dipilih.")
@@ -277,13 +344,8 @@ class AddDataDialog(QDialog):
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Cicilan Ke- harus berupa angka bulat.")
             return
-        if not jumlah_cicilan_str:
-            QMessageBox.warning(self, "Input Error", "Jumlah Cicilan harus diisi.")
-            return
-        try:
-            jumlah_cicilan = float(jumlah_cicilan_str)
-        except ValueError:
-            QMessageBox.warning(self, "Input Error", "Jumlah Cicilan harus berupa angka.")
+        if jumlah_cicilan <= 0: # Check if the numeric value is valid
+            QMessageBox.warning(self, "Input Error", "Jumlah Cicilan harus berupa angka positif.")
             return
 
         query = QSqlQuery(self.db)

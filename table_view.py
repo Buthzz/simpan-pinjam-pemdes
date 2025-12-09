@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                              QTableView, QLabel, QLineEdit, QComboBox,
                              QStyledItemDelegate, QStyleOptionViewItem)
-from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtCore import Qt, QModelIndex, QLocale
 from PyQt6.QtSql import QSqlQueryModel, QSqlQuery, QSqlDatabase # Import QSqlDatabase for the delegate and model
 
 
@@ -104,13 +104,23 @@ class PeminjamDelegate(QStyledItemDelegate):
 class CurrencyDelegate(QStyledItemDelegate):
     """Delegate untuk format currency"""
 
-    def displayText(self, value, locale):
+    def displayText(self, value, qt_locale):
         try:
-            # Coba konversi ke float
-            num = float(value)
-            # Format dengan pemisah ribuan
-            return f"Rp {num:,.0f}".replace(",", ".")
-        except:
+            # Ensure value is treated as a string before conversion, in case it's a QVariant or other object
+            num = float(str(value))
+
+            # Create a QLocale object for Indonesian (id_ID).
+            indonesian_locale = QLocale(QLocale.Language.Indonesian, QLocale.Country.Indonesia)
+
+            # Format as currency with no decimal digits.
+            formatted_string = indonesian_locale.toString(num, 'f', 0)
+            return f"Rp {formatted_string}"
+
+        except Exception as e:
+            # Fallback if conversion or formatting fails.
+            # This is where "6e+06" would be returned if value was already that string
+            # and the float conversion failed.
+            print(f"DEBUG: Error in CurrencyDelegate for value '{value}': {e}") # Keep for debugging
             return str(value)
 
 
