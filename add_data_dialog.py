@@ -1,33 +1,54 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLineEdit, QLabel, QComboBox,
                              QMessageBox, QDateEdit, QStackedWidget, QWidget)
-from PyQt6.QtSql import QSqlQuery, QSqlDatabase # Added QSqlDatabase
+from PyQt6.QtSql import QSqlQuery, QSqlDatabase
 from PyQt6.QtCore import Qt, QDate
 
 
 class AddDataDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, table_type=None): # Added table_type parameter
         super().__init__(parent)
         self.setWindowTitle("Tambah Data Baru")
         self.setGeometry(200, 200, 600, 400)
         self.db = QSqlDatabase.database() # Get the current QSqlDatabase instance
+        self.table_type = table_type # Store table_type
 
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
 
+        # Mapping table names to stacked widget indices
+        self.table_to_index = {"peminjam": 0, "pinjaman": 1, "cicilan": 2}
+
+        self.type_selector_widget = QWidget() # Group the selector for easy hiding
         self.init_type_selector()
+        self.main_layout.addWidget(self.type_selector_widget)
+
         self.init_stacked_forms()
         self.init_buttons()
 
+        if self.table_type:
+            # If table_type is provided, directly show the correct form
+            # and hide the type selector
+            self.type_selector_widget.hide()
+            if self.table_type in self.table_to_index:
+                self.change_form(self.table_to_index[self.table_type])
+            else:
+                QMessageBox.critical(self, "Error", f"Invalid table type: {self.table_type}")
+                self.reject() # Close dialog if invalid type
+        else:
+            # Default to Peminjam form if no type is given
+            self.change_form(0) # Default to Peminjam form if no type is given
+
+
     def init_type_selector(self):
         # Widget untuk memilih tipe data (Peminjam, Pinjaman, Cicilan)
-        type_selector_layout = QHBoxLayout()
+        type_selector_layout = QHBoxLayout(self.type_selector_widget)
         type_selector_layout.addWidget(QLabel("Pilih Tipe Data:"))
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Peminjam", "Pinjaman", "Cicilan"])
-        self.type_combo.currentIndexChanged.connect(self.change_form)
+        self.type_combo.currentTextChanged.connect(self.change_form_by_name) # Connect to new method
         type_selector_layout.addWidget(self.type_combo)
-        self.main_layout.addLayout(type_selector_layout)
+
 
     def init_stacked_forms(self):
         self.stacked_widget = QStackedWidget()
@@ -41,7 +62,6 @@ class AddDataDialog(QDialog):
         self.stacked_widget.addWidget(self.form_pinjaman) # Index 1
         self.stacked_widget.addWidget(self.form_cicilan)  # Index 2
 
-        self.change_form(0) # Default to Peminjam form
 
     def _create_peminjam_form(self):
         widget = QWidget()
@@ -153,6 +173,14 @@ class AddDataDialog(QDialog):
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.cancel_button)
         self.main_layout.addLayout(button_layout)
+
+    def change_form_by_name(self, table_name_str):
+        # Map string name to index
+        if table_name_str in self.table_to_index:
+            index = self.table_to_index[table_name_str]
+            self.change_form(index)
+        else:
+            QMessageBox.critical(self, "Error", f"Invalid table type selected: {table_name_str}")
 
     def change_form(self, index):
         self.stacked_widget.setCurrentIndex(index)
@@ -271,4 +299,3 @@ class AddDataDialog(QDialog):
             self.accept()
         else:
             QMessageBox.critical(self, "Error", f"Gagal menambahkan Cicilan: {query.lastError().text()}")
-

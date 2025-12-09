@@ -218,8 +218,8 @@ class RecordViewWidget(QWidget):
 
     # === CRUD Operations ===
     def add_record(self):
-        """Membuka dialog untuk menambah record baru"""
-        dialog = AddDataDialog(self)
+        """Membuka dialog untuk menambah record baru, sesuai dengan tabel yang sedang aktif"""
+        dialog = AddDataDialog(self, table_type=self.current_table) # Pass current_table
         if dialog.exec() == QDialog.DialogCode.Accepted:
             # Refresh the current table's data if a new record was added
             self.model.select()
