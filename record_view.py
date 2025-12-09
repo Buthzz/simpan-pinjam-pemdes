@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLabel, QLineEdit, QComboBox,
-                             QDateEdit, QDataWidgetMapper, QMessageBox)
+                             QDateEdit, QDataWidgetMapper, QMessageBox, QDialog) # Added QDialog
 from PyQt6.QtCore import Qt
 from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation
 from add_data_dialog import AddDataDialog # Import the new dialog

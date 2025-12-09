@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLineEdit, QLabel, QComboBox,
                              QMessageBox, QDateEdit, QStackedWidget, QWidget)
-from PyQt6.QtSql import QSqlQuery
+from PyQt6.QtSql import QSqlQuery, QSqlDatabase # Added QSqlDatabase
 from PyQt6.QtCore import Qt, QDate
 
 
@@ -10,7 +10,7 @@ class AddDataDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Tambah Data Baru")
         self.setGeometry(200, 200, 600, 400)
-        self.db = QSqlQuery().database() # Get the current QSqlDatabase instance
+        self.db = QSqlDatabase.database() # Get the current QSqlDatabase instance
 
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
