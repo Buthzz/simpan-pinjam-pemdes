@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QDateEdit, QDataWidgetMapper, QMessageBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation
+from add_data_dialog import AddDataDialog # Import the new dialog
 
 
 class RecordViewWidget(QWidget):
@@ -56,18 +57,18 @@ class RecordViewWidget(QWidget):
 
         self.btn_add = QPushButton("Tambah")
         self.btn_delete = QPushButton("Hapus")
-        self.btn_save = QPushButton("Simpan")
-        self.btn_cancel = QPushButton("Batal")
+        self.btn_save = QPushButton("Simpan") # Restored
+        self.btn_cancel = QPushButton("Batal") # Restored
 
         self.btn_add.clicked.connect(self.add_record)
         self.btn_delete.clicked.connect(self.delete_record)
-        self.btn_save.clicked.connect(self.save_record)
-        self.btn_cancel.clicked.connect(self.cancel_edit)
+        self.btn_save.clicked.connect(self.save_record) # Restored
+        self.btn_cancel.clicked.connect(self.cancel_edit) # Restored
 
         action_layout.addWidget(self.btn_add)
         action_layout.addWidget(self.btn_delete)
-        action_layout.addWidget(self.btn_save)
-        action_layout.addWidget(self.btn_cancel)
+        action_layout.addWidget(self.btn_save) # Restored
+        action_layout.addWidget(self.btn_cancel) # Restored
         layout.addLayout(action_layout)
 
         self.setLayout(layout)
@@ -116,7 +117,8 @@ class RecordViewWidget(QWidget):
         self.create_form_fields()
 
         # Navigate to first record
-        self.mapper.toFirst()
+        if self.model.rowCount() > 0: # Check if there are records
+            self.mapper.toFirst()
         self.update_position()
 
     def create_form_fields(self):
@@ -202,24 +204,31 @@ class RecordViewWidget(QWidget):
 
     def next_record(self):
         self.mapper.toNext()
+        # After navigating, if the current index is -1 (no records),
+        # ensure the form fields are cleared. This handles cases
+        # where the last record is deleted.
+        if self.model.rowCount() > 0 and self.mapper.currentIndex() == -1:
+            self.mapper.toFirst()
+        elif self.model.rowCount() == 0:
+            self.mapper.clearMapping()
+            self.update_position()
 
     def last_record(self):
         self.mapper.toLast()
 
     # === CRUD Operations ===
     def add_record(self):
-        """Tambah record baru"""
-        row = self.model.rowCount()
-        self.model.insertRow(row)
-        self.mapper.setCurrentIndex(row)
+        """Membuka dialog untuk menambah record baru"""
+        dialog = AddDataDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Refresh the current table's data if a new record was added
+            self.model.select()
+            if self.model.rowCount() > 0:
+                self.mapper.toLast() # Go to the newly added record
+            else:
+                self.mapper.clearMapping() # Clear form if no records left
+            self.update_position()
 
-        # Set default values
-        if self.current_table == "pinjaman":
-            if 'status' in self.fields:
-                self.fields['status'].setCurrentText("Aktif")
-        elif self.current_table == "cicilan":
-            if 'status_bayar' in self.fields:
-                self.fields['status_bayar'].setCurrentText("Belum Bayar")
 
     def delete_record(self):
         """Hapus record saat ini"""
@@ -231,17 +240,26 @@ class RecordViewWidget(QWidget):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            self.model.removeRow(self.mapper.currentIndex())
-            if self.model.submitAll():
-                QMessageBox.information(self, "Sukses", "Data berhasil dihapus!")
-                self.model.select()
+            current_index = self.mapper.currentIndex()
+            if current_index >= 0:
+                self.model.removeRow(current_index)
+                if self.model.submitAll():
+                    QMessageBox.information(self, "Sukses", "Data berhasil dihapus!")
+                    self.model.select() # Re-select to refresh the view
+                    if self.model.rowCount() > 0:
+                        self.mapper.toFirst() # Go to first record if available
+                    else:
+                        self.mapper.clearMapping() # Clear form if no records left
+                    self.update_position()
+                else:
+                    QMessageBox.critical(self, "Error",
+                                         f"Gagal menghapus: {self.model.lastError().text()}")
+                    self.model.revertAll()
             else:
-                QMessageBox.critical(self, "Error",
-                                     f"Gagal menghapus: {self.model.lastError().text()}")
-                self.model.revertAll()
+                QMessageBox.warning(self, "Peringatan", "Tidak ada record untuk dihapus.")
 
     def save_record(self):
-        """Simpan perubahan"""
+        """Simpan perubahan pada record yang sedang ditampilkan"""
         # Untuk pinjaman, konversi nama peminjam ke id_peminjam sebelum simpan
         if self.current_table == "pinjaman" and 'id_peminjam' in self.fields:
             combo = self.fields['id_peminjam']
@@ -261,6 +279,6 @@ class RecordViewWidget(QWidget):
             self.model.revertAll()
 
     def cancel_edit(self):
-        """Batal dan revert perubahan"""
+        """Batal dan revert perubahan pada record yang sedang ditampilkan"""
         self.model.revertAll()
         self.mapper.revert()

@@ -1,8 +1,10 @@
 import sys
+import os
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget
 from database_manager import DatabaseManager
 from table_view import TableViewWidget
 from record_view import RecordViewWidget
+import create_database
 
 
 class MainWindow(QMainWindow):
@@ -37,6 +39,12 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    # Cek dan buat database jika belum ada
+    if not os.path.exists('database.db'):
+        print("Database 'database.db' tidak ditemukan. Membuat database baru...")
+        create_database.create_database()
+        print("Database berhasil dibuat.")
+
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
