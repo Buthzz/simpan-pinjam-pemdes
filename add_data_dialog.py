@@ -2,8 +2,8 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLineEdit, QLabel, QComboBox,
                              QMessageBox, QDateEdit, QStackedWidget, QWidget)
 from PyQt6.QtSql import QSqlQuery, QSqlDatabase
-from PyQt6.QtCore import Qt, QDate, QLocale
-from PyQt6.QtGui import QDoubleValidator # Add this import
+from PyQt6.QtCore import Qt, QDate, QLocale, pyqtProperty
+from PyQt6.QtGui import QDoubleValidator
 
 
 class CurrencyLineEdit(QLineEdit):
@@ -17,7 +17,7 @@ class CurrencyLineEdit(QLineEdit):
         self._numeric_value = 0.0
         self.indonesian_locale = QLocale(QLocale.Language.Indonesian, QLocale.Country.Indonesia)
         self.editingFinished.connect(self._on_editing_finished)
-        self.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
     def _format_value_for_display(self, value):
         try:
@@ -78,8 +78,6 @@ class CurrencyLineEdit(QLineEdit):
     def text(self):
         # When text() is called, we return the formatted text
         return super().text()
-, QLocale
-from PyQt6.QtGui import QDoubleValidator # Add this import
 
 
 class AddDataDialog(QDialog):
@@ -314,6 +312,10 @@ class AddDataDialog(QDialog):
             QMessageBox.warning(self, "Input Error", "Jumlah Pinjaman harus berupa angka positif.")
             return
 
+        tanggal_pinjam = self.pinjaman_fields['tanggal_pinjam'].date().toString("yyyy-MM-dd")
+        tanggal_selesai = self.pinjaman_fields['tanggal_selesai'].date().toString("yyyy-MM-dd")
+        status = self.pinjaman_fields['status'].currentText()
+
         query = QSqlQuery(self.db)
         query.prepare("INSERT INTO pinjaman (id_peminjam, jumlah_pinjaman, tanggal_pinjam, tanggal_selesai, status) VALUES (?, ?, ?, ?, ?)")
         query.addBindValue(id_peminjam)
@@ -347,6 +349,9 @@ class AddDataDialog(QDialog):
         if jumlah_cicilan <= 0: # Check if the numeric value is valid
             QMessageBox.warning(self, "Input Error", "Jumlah Cicilan harus berupa angka positif.")
             return
+
+        tanggal_bayar = self.cicilan_fields['tanggal_bayar'].date().toString("yyyy-MM-dd")
+        status_bayar = self.cicilan_fields['status_bayar'].currentText()
 
         query = QSqlQuery(self.db)
         query.prepare("INSERT INTO cicilan (id_pinjaman, cicilan_ke, jumlah_cicilan, tanggal_bayar, status_bayar) VALUES (?, ?, ?, ?, ?)")

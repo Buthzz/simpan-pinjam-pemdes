@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
 from PyQt6.QtCore import Qt, pyqtProperty, QLocale
 from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation, QSqlDatabase
 from PyQt6.QtGui import QDoubleValidator # Add this import
+from add_data_dialog import AddDataDialog # Add this import
 
 
 # Custom ComboBox for QDataWidgetMapper to handle currentData property
@@ -39,7 +40,7 @@ class CurrencyLineEdit(QLineEdit):
         self._numeric_value = 0.0
         self.indonesian_locale = QLocale(QLocale.Language.Indonesian, QLocale.Country.Indonesia)
         self.editingFinished.connect(self._on_editing_finished)
-        self.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
     def _format_value_for_display(self, value):
         try:
