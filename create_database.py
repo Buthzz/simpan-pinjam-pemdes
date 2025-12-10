@@ -7,108 +7,36 @@ def create_database():
 
     
     cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS peminjam
-                   (
-                       id_peminjam
-                       INTEGER
-                       PRIMARY
-                       KEY
-                       AUTOINCREMENT,
-                       nama
-                       TEXT
-                       NOT
-                       NULL,
-                       alamat
-                       TEXT
-                       NOT
-                       NULL,
-                       no_telp
-                       TEXT
-                       NOT
-                       NULL,
-                       email
-                       TEXT
-                       NOT
-                       NULL
-                   )
+                   CREATE TABLE IF NOT EXISTS peminjam (
+                        id_peminjam INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        nama TEXT NOT NULL, alamat TEXT NOT NULL, 
+                        no_telp TEXT NOT NULL, email TEXT NOT NULL
+                    )
+                   ''')
+    
+    cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS pinjaman (
+                        id_pinjaman INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        id_peminjam INTEGER NOT NULL, 
+                        jumlah_pinjaman REAL NOT NULL, 
+                        tanggal_pinjam TEXT NOT NULL, 
+                        tanggal_selesai TEXT NOT NULL, 
+                        status TEXT NOT NULL, 
+                        FOREIGN KEY (id_peminjam) REFERENCES peminjam (id_peminjam)
+                    )
                    ''')
 
     
     cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS pinjaman
-                   (
-                       id_pinjaman
-                       INTEGER
-                       PRIMARY
-                       KEY
-                       AUTOINCREMENT,
-                       id_peminjam
-                       INTEGER
-                       NOT
-                       NULL,
-                       jumlah_pinjaman
-                       REAL
-                       NOT
-                       NULL,
-                       tanggal_pinjam
-                       TEXT
-                       NOT
-                       NULL,
-                       tanggal_selesai
-                       TEXT
-                       NOT
-                       NULL,
-                       status
-                       TEXT
-                       NOT
-                       NULL,
-                       FOREIGN
-                       KEY
-                   (
-                       id_peminjam
-                   ) REFERENCES peminjam
-                   (
-                       id_peminjam
-                   )
-                       )
-                   ''')
-
-    
-    cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS cicilan
-                   (
-                       id_cicilan
-                       INTEGER
-                       PRIMARY
-                       KEY
-                       AUTOINCREMENT,
-                       id_pinjaman
-                       INTEGER
-                       NOT
-                       NULL,
-                       cicilan_ke
-                       INTEGER
-                       NOT
-                       NULL,
-                       jumlah_cicilan
-                       REAL
-                       NOT
-                       NULL,
-                       tanggal_bayar
-                       TEXT,
-                       status_bayar
-                       TEXT
-                       NOT
-                       NULL,
-                       FOREIGN
-                       KEY
-                   (
-                       id_pinjaman
-                   ) REFERENCES pinjaman
-                   (
-                       id_pinjaman
-                   )
-                       )
+                   CREATE TABLE IF NOT EXISTS cicilan (
+                        id_cicilan INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        id_pinjaman INTEGER NOT NULL, 
+                        cicilan_ke INTEGER NOT NULL, 
+                        jumlah_cicilan REAL NOT NULL, 
+                        tanggal_bayar TEXT, 
+                        status_bayar TEXT NOT NULL, 
+                        FOREIGN KEY (id_pinjaman) REFERENCES pinjaman (id_pinjaman)
+                    )
                    ''')
 
     
