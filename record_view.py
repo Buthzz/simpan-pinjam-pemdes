@@ -1,12 +1,94 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QPushButton, QLabel, QLineEdit, QComboBox,
-                             QDateEdit, QDataWidgetMapper, QMessageBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation
+                             QDateEdit, QDataWidgetMapper, QMessageBox, QDialog)
+from PyQt6.QtCore import Qt, pyqtProperty, QLocale
+from PyQt6.QtSql import QSqlTableModel, QSqlQuery, QSqlRelationalTableModel, QSqlRelation, QSqlDatabase
+from PyQt6.QtGui import QDoubleValidator 
+from add_data_dialog import AddDataDialog 
+
+
+
+class MappingComboBox(QComboBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+    def _get_current_data_property(self):
+        return self.currentData()
+
+    def _set_current_data_property(self, value):
+        
+        index = self.findData(value)
+        if index >= 0:
+            self.setCurrentIndex(index)
+        
+        elif value is None and self.count() > 0 and self.itemData(0) is None:
+            self.setCurrentIndex(0)
+
+    
+    
+    currentData_property = pyqtProperty(int, _get_current_data_property, _set_current_data_property, user=True)
+
+
+class CurrencyLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        validator = QDoubleValidator(0.0, 1000000000000000.0, 2, self)
+        validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        self.setValidator(validator)
+
+        self._numeric_value = 0.0
+        self.indonesian_locale = QLocale(QLocale.Language.Indonesian, QLocale.Country.Indonesia)
+        self.editingFinished.connect(self._on_editing_finished)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+    def _format_value_for_display(self, value):
+        try:
+            num = float(value)
+            
+            
+            return f"Rp {self.indonesian_locale.toString(num, 'f', 0)}"
+        except (ValueError, TypeError):
+            return ""
+
+    def _get_numeric_from_display_text(self, text):
+        
+        cleaned_text = text.replace("Rp ", "").strip()
+        try:
+            
+            num, ok = self.indonesian_locale.toDouble(cleaned_text)
+            if ok:
+                return num
+            else:
+                return 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    def get_numeric_value(self):
+        
+        return self._numeric_value
+
+    def set_numeric_value(self, value):
+        if value is None:
+            value = 0.0
+        new_numeric_value = float(value)
+        if self._numeric_value != new_numeric_value:
+            self._numeric_value = new_numeric_value
+            
+            super().setText(self._format_value_for_display(self._numeric_value))
+
+    
+    numeric_value = pyqtProperty(float, get_numeric_value, set_numeric_value, user=True)
+
+    def _on_editing_finished(self):
+        
+        
+        current_display_text = self.text()
+        parsed_value = self._get_numeric_from_display_text(current_display_text)
+        self.set_numeric_value(parsed_value) 
 
 
 class RecordViewWidget(QWidget):
-    """Widget untuk CRUD menggunakan QDataWidgetMapper"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -16,7 +98,7 @@ class RecordViewWidget(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
 
-        # === Table Selector ===
+        
         table_layout = QHBoxLayout()
         table_layout.addWidget(QLabel("Pilih Tabel:"))
         self.table_selector = QComboBox()
@@ -25,11 +107,11 @@ class RecordViewWidget(QWidget):
         table_layout.addWidget(self.table_selector)
         layout.addLayout(table_layout)
 
-        # === Form Layout ===
+        
         self.form_layout = QFormLayout()
         layout.addLayout(self.form_layout)
 
-        # === Navigation Controls ===
+        
         nav_layout = QHBoxLayout()
 
         self.btn_first = QPushButton("<<")
@@ -51,7 +133,7 @@ class RecordViewWidget(QWidget):
         nav_layout.addWidget(self.btn_last)
         layout.addLayout(nav_layout)
 
-        # === Action Buttons (CRUD) ===
+        
         action_layout = QHBoxLayout()
 
         self.btn_add = QPushButton("Tambah")
@@ -72,81 +154,104 @@ class RecordViewWidget(QWidget):
 
         self.setLayout(layout)
 
-        # Initialize QDataWidgetMapper
+        
         self.mapper = QDataWidgetMapper()
         self.mapper.currentIndexChanged.connect(self.update_position)
 
-        # Load initial table
+        
         self.change_table("peminjam")
 
     def change_table(self, table_name):
         """Ganti tabel yang ditampilkan"""
         self.current_table = table_name
 
-        # Clear form
+        
         while self.form_layout.rowCount() > 0:
             self.form_layout.removeRow(0)
 
-        # Setup model dengan relasi untuk foreign key
+        
         if table_name == "pinjaman":
-            # Gunakan QSqlRelationalTableModel untuk menampilkan nama peminjam
+            
             self.model = QSqlRelationalTableModel()
             self.model.setTable(table_name)
             self.model.setRelation(1, QSqlRelation("peminjam", "id_peminjam", "nama"))
             self.model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnManualSubmit)
         elif table_name == "cicilan":
-            # Gunakan QSqlRelationalTableModel untuk menampilkan ID Pinjaman
+            
             self.model = QSqlRelationalTableModel()
             self.model.setTable(table_name)
-            # Untuk cicilan, tetap tampilkan id_pinjaman (tidak ada nama yang cocok)
+            
+            
+            self.model.setRelation(1, QSqlRelation("pinjaman", "id_pinjaman", "id_pinjaman"))
             self.model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnManualSubmit)
         else:
-            # Tabel peminjam tidak perlu relasi
+            
             self.model = QSqlTableModel()
             self.model.setTable(table_name)
             self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
 
         self.model.select()
 
-        # Setup QDataWidgetMapper
+        
         self.mapper.setModel(self.model)
         self.mapper.setSubmitPolicy(QDataWidgetMapper.SubmitPolicy.ManualSubmit)
 
-        # Create form fields
+        
         self.create_form_fields()
 
-        # Navigate to first record
-        self.mapper.toFirst()
+        
+        if self.model.rowCount() > 0: 
+            self.mapper.toFirst()
         self.update_position()
 
+    def _load_pinjaman_with_peminjam_names_to_combo(self, combo_box):
+        combo_box.clear()
+        combo_box.addItem("Pilih Pinjaman", None) 
+        query = QSqlQuery(QSqlDatabase.database())
+        query.exec("SELECT p.id_pinjaman, p.jumlah_pinjaman, pm.nama FROM pinjaman p JOIN peminjam pm ON p.id_peminjam = pm.id_peminjam ORDER BY p.id_pinjaman")
+        
+        while query.next():
+            loan_id = query.value(0)
+            amount = query.value(1)
+            peminjam_name = query.value(2)
+            display_text = f"ID: {loan_id} - {peminjam_name} (Rp {amount:,.0f})"
+            combo_box.addItem(display_text, loan_id) 
+
     def create_form_fields(self):
-        """Buat form fields berdasarkan kolom tabel"""
         self.fields = {}
 
         for i in range(self.model.columnCount()):
             col_name = self.model.headerData(i, Qt.Orientation.Horizontal)
 
-            # Primary key (read-only)
+            
             if col_name and 'id_' in col_name.lower() and i == 0:
                 field = QLineEdit()
                 field.setReadOnly(True)
                 self.fields[col_name] = field
                 self.form_layout.addRow(col_name + ":", field)
                 self.mapper.addMapping(field, i)
-
-            # Foreign key id_peminjam - tampilkan sebagai ComboBox dengan nama
+            
+            
+            elif self.current_table == "cicilan" and col_name and col_name.lower() == 'id_pinjaman':
+                field = MappingComboBox() 
+                self._load_pinjaman_with_peminjam_names_to_combo(field)
+                self.fields[col_name] = field
+                self.form_layout.addRow("ID Pinjaman (Peminjam):", field)
+                self.mapper.addMapping(field, i, b"currentData_property") 
+            
+            
             elif col_name and col_name.lower() == 'id_peminjam':
                 field = QComboBox()
-                # Load data peminjam
-                query = QSqlQuery()
+                
+                query = QSqlQuery(QSqlDatabase.database())
                 query.exec("SELECT id_peminjam, nama FROM peminjam ORDER BY nama")
                 while query.next():
-                    field.addItem(query.value(1), query.value(0))  # text=nama, data=id
+                    field.addItem(query.value(1), query.value(0))  
                 self.fields[col_name] = field
                 self.form_layout.addRow("Peminjam:", field)
                 self.mapper.addMapping(field, i)
 
-            # Date fields
+            
             elif col_name and 'tanggal' in col_name.lower():
                 field = QDateEdit()
                 field.setCalendarPopup(True)
@@ -155,7 +260,7 @@ class RecordViewWidget(QWidget):
                 self.form_layout.addRow(col_name + ":", field)
                 self.mapper.addMapping(field, i)
 
-            # Status fields (ComboBox)
+            
             elif col_name and 'status' in col_name.lower():
                 field = QComboBox()
                 if 'pinjaman' in self.current_table:
@@ -166,15 +271,14 @@ class RecordViewWidget(QWidget):
                 self.form_layout.addRow(col_name + ":", field)
                 self.mapper.addMapping(field, i)
 
-            # Jumlah/nominal fields - format dengan pemisah ribuan
+            
             elif col_name and ('jumlah' in col_name.lower() or 'nominal' in col_name.lower()):
-                field = QLineEdit()
-                # Validator untuk angka saja
+                field = CurrencyLineEdit()
                 self.fields[col_name] = field
                 self.form_layout.addRow(col_name + ":", field)
-                self.mapper.addMapping(field, i)
+                self.mapper.addMapping(field, i, b"numeric_value")
 
-            # Regular text fields
+            
             else:
                 field = QLineEdit()
                 self.fields[col_name] = field
@@ -182,18 +286,17 @@ class RecordViewWidget(QWidget):
                 self.mapper.addMapping(field, i)
 
     def update_position(self):
-        """Update label posisi record"""
         current = self.mapper.currentIndex() + 1
         total = self.model.rowCount()
         self.lbl_position.setText(f"{current}/{total}")
 
-        # Enable/disable navigation buttons
+        
         self.btn_first.setEnabled(current > 1)
         self.btn_prev.setEnabled(current > 1)
         self.btn_next.setEnabled(current < total)
         self.btn_last.setEnabled(current < total)
 
-    # === Navigation Methods ===
+    
     def first_record(self):
         self.mapper.toFirst()
 
@@ -202,27 +305,32 @@ class RecordViewWidget(QWidget):
 
     def next_record(self):
         self.mapper.toNext()
+        
+        
+        
+        if self.model.rowCount() > 0 and self.mapper.currentIndex() == -1:
+            self.mapper.toFirst()
+        elif self.model.rowCount() == 0:
+            self.mapper.clearMapping()
+            self.update_position()
 
     def last_record(self):
         self.mapper.toLast()
 
-    # === CRUD Operations ===
+    
     def add_record(self):
-        """Tambah record baru"""
-        row = self.model.rowCount()
-        self.model.insertRow(row)
-        self.mapper.setCurrentIndex(row)
+        dialog = AddDataDialog(self, table_type=self.current_table) 
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            
+            self.model.select()
+            if self.model.rowCount() > 0:
+                self.mapper.toLast() 
+            else:
+                self.mapper.clearMapping() 
+            self.update_position()
 
-        # Set default values
-        if self.current_table == "pinjaman":
-            if 'status' in self.fields:
-                self.fields['status'].setCurrentText("Aktif")
-        elif self.current_table == "cicilan":
-            if 'status_bayar' in self.fields:
-                self.fields['status_bayar'].setCurrentText("Belum Bayar")
 
     def delete_record(self):
-        """Hapus record saat ini"""
         reply = QMessageBox.question(
             self,
             "Konfirmasi Hapus",
@@ -231,24 +339,41 @@ class RecordViewWidget(QWidget):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            self.model.removeRow(self.mapper.currentIndex())
-            if self.model.submitAll():
-                QMessageBox.information(self, "Sukses", "Data berhasil dihapus!")
-                self.model.select()
+            current_index = self.mapper.currentIndex()
+            if current_index >= 0:
+                self.model.removeRow(current_index)
+                if self.model.submitAll():
+                    QMessageBox.information(self, "Sukses", "Data berhasil dihapus!")
+                    self.model.select() 
+                    if self.model.rowCount() > 0:
+                        self.mapper.toFirst() 
+                    else:
+                        self.mapper.clearMapping() 
+                    self.update_position()
+                else:
+                    QMessageBox.critical(self, "Error",
+                                         f"Gagal menghapus: {self.model.lastError().text()}")
+                    self.model.revertAll()
             else:
-                QMessageBox.critical(self, "Error",
-                                     f"Gagal menghapus: {self.model.lastError().text()}")
-                self.model.revertAll()
+                QMessageBox.warning(self, "Peringatan", "Tidak ada record untuk dihapus.")
 
     def save_record(self):
-        """Simpan perubahan"""
-        # Untuk pinjaman, konversi nama peminjam ke id_peminjam sebelum simpan
+        
         if self.current_table == "pinjaman" and 'id_peminjam' in self.fields:
             combo = self.fields['id_peminjam']
             id_peminjam = combo.currentData()
-            # Set nilai id_peminjam ke model
+            
             current_row = self.mapper.currentIndex()
-            self.model.setData(self.model.index(current_row, 1), id_peminjam)
+            self.model.setData(self.model.index(current_row, 1), id_peminjam) 
+
+        
+        elif self.current_table == "cicilan" and 'id_pinjaman' in self.fields:
+            combo = self.fields['id_pinjaman']
+            id_pinjaman = combo.currentData()
+            current_row = self.mapper.currentIndex()
+            
+            self.model.setData(self.model.index(current_row, 1), id_pinjaman)
+
 
         self.mapper.submit()
 
@@ -261,6 +386,5 @@ class RecordViewWidget(QWidget):
             self.model.revertAll()
 
     def cancel_edit(self):
-        """Batal dan revert perubahan"""
         self.model.revertAll()
         self.mapper.revert()

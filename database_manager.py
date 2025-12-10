@@ -3,7 +3,6 @@ from PyQt6.QtWidgets import QMessageBox
 
 
 class DatabaseManager:
-    """Class untuk mengelola koneksi database"""
 
     def __init__(self, db_name="database.db"):
         self.db_name = db_name
