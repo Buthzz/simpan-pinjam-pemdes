@@ -99,12 +99,12 @@ simpan-pinjam-pemdes/
 ├── database_manager.py     # Class untuk koneksi database
 ├── table_view.py           # Widget Table View dengan filter
 ├── record_view.py          # Widget Record View dengan CRUD
-├── add_data_dialog. py      # Dialog untuk tambah data baru
+├── add_data_dialog.py      # Dialog untuk tambah data baru
 ├── database.db             # SQLite database (auto-generated)
 ├── ERD.png                 # Entity Relationship Diagram
-├── table_view. png          # Screenshot Table View
+├── table_view.png          # Screenshot Table View
 ├── record_view.png         # Screenshot Record View
-├── LICENSE. txt             # GPL-3.0 License
+├── LICENSE.txt             # MIT License
 └── README.md               # Dokumentasi project
 ```
 
@@ -141,7 +141,7 @@ Jika ingin reset database dengan sample data:
 python create_database.py
 ```
 
-Output: `✅ Database berhasil dibuat: database. db`
+Output: `✅ Database berhasil dibuat: database.db`
 
 ## 🎨 Tech Stack
 
@@ -231,7 +231,7 @@ python --version
 
 ## 📄 Lisensi
 
-Project ini dilisensikan di bawah [GNU General Public License v3.0](LICENSE.txt).
+Project ini dilisensikan di bawah [MIT License](LICENSE.txt).
 
 Dibuat untuk keperluan akademis (UAS Pemrograman Desktop) oleh Kelompok IF 7D.
 
